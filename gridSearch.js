@@ -60,7 +60,11 @@ window.onload = function(){
 			this.dim = dim;
 			this.start = start;
 			this.end = end;
-			this.walls = walls;
+			this.walls = {};
+			for(i in walls){
+				this.walls[walls[i]] = true;
+			}
+			console.log(this.walls);
 		};
 
 		this.update = function(canvasWidth, canvasHeight){
@@ -82,7 +86,7 @@ window.onload = function(){
 		};
 
 		this.drawGridBackground = function(){
-			ctx.fillStyle = '#888';
+			ctx.fillStyle = '#333';
 			ctx.shadowColor = ctx.fillStyle;
 			ctx.shadowBlur = 10;
 			ctx.fillRect(this.xOffset, this.yOffset, this.gridSize, this.gridSize);
@@ -96,16 +100,19 @@ window.onload = function(){
 			for(var row = 0; row < this.dim; row++){
 				for(var col = 0; col < this.dim; col++){
 					if(this.start[0] === row && this.start[1] === col){
-						console.log('start: ', row, col);
 						ctx.fillStyle = '#00FF00';
 						ctx.shadowColor = ctx.fillStyle;
 						ctx.shadowBlur = 20;
 					}
 					else if(this.end[0] === row && this.end[1] === col){
-						console.log('end: ', row, col);
 						ctx.fillStyle = '#FF0000';
 						ctx.shadowColor = ctx.fillStyle;
 						ctx.shadowBlur = 20;
+					}
+					else if(this.walls[[row, col]]){
+						ctx.fillStyle = '#666';
+						ctx.shadowColor = ctx.fillStyle;
+						ctx.shadowBlur = 0;
 					}
 					else{
 						ctx.fillStyle = '#BBB';
@@ -123,7 +130,18 @@ window.onload = function(){
 	var gridDim = 20;
 	var start = [1, 0];
 	var end = [13, 18];
+
 	var walls = [];
+	for(var row = 0; row < gridDim; row++){
+		if(row !== 17){
+			walls.push([row, 13]);
+		}
+	}
+	for(var col = 0; col < gridDim; col++){
+		if(col !== 11){
+			walls.push([5, col]);
+		}
+	}
 
 	var grid = new Grid();
 	grid.init(gridDim, start, end, walls);
