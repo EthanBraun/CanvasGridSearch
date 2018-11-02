@@ -64,7 +64,8 @@ window.onload = function(){
 			for(i in walls){
 				this.walls[walls[i]] = true;
 			}
-			console.log(this.walls);
+			this.searched = {};
+			this.searchDS = [start];
 		};
 
 		this.update = function(canvasWidth, canvasHeight){
@@ -105,7 +106,7 @@ window.onload = function(){
 						ctx.shadowBlur = 20;
 					}
 					else if(this.end[0] === row && this.end[1] === col){
-						ctx.fillStyle = '#FF0000';
+						ctx.fillStyle = this.searchDS.length ? '#FF0000' : '#AA00FF';
 						ctx.shadowColor = ctx.fillStyle;
 						ctx.shadowBlur = 20;
 					}
@@ -113,6 +114,11 @@ window.onload = function(){
 						ctx.fillStyle = '#666';
 						ctx.shadowColor = ctx.fillStyle;
 						ctx.shadowBlur = 0;
+					}
+					else if(this.searched[[row, col]]){
+						ctx.fillStyle = '#0000FF';
+						ctx.shadowColor = ctx.fillStyle;
+						ctx.shadowBlur = 10;
 					}
 					else{
 						ctx.fillStyle = '#BBB';
@@ -125,11 +131,58 @@ window.onload = function(){
 				}
 			}
 		};
+
+		this.getValidNeighbors = function(cur){
+			var neighbors = [];
+			var directions = [[-1, 0], [0, -1], [1, 0], [0, 1]];
+			for(i in directions){
+				var dir = directions[i];
+				var row = cur[0] + dir[0];
+				var col = cur[1] + dir[1];
+				var rowValid = row > -1 && row < this.dim;
+				var colValid = col > -1 && col < this.dim;
+				if(rowValid && colValid && !this.walls[[row, col]] && !this.searched[[row, col]]){
+					neighbors.push([row, col]);	
+				}
+			}
+			return neighbors;
+		};
+	
+		// Treat searchDS as a queue	
+		this.bfs = function(){
+			console.log(this.searchDS);
+			var cur = this.searchDS.pop();	
+			var validNeighbors = this.getValidNeighbors(cur);
+			for(i in validNeighbors){
+				if(validNeighbors[i][0] === this.end[0] && validNeighbors[i][1] === this.end[1]){
+					this.searchDS = [];
+					this.searched[validNeighbors[i]] = true;
+					return;
+				}
+				this.searched[validNeighbors[i]] = true;
+				this.searchDS.splice(0, 0, validNeighbors[i]);
+			}
+		};
+
+		// Treat searchDS as a stack
+		this.dfs = function(){
+			var cur = this.searchDS.pop();	
+			var validNeighbors = this.getValidNeighbors(cur);
+			for(i in validNeighbors){
+				if(validNeighbors[i][0] === this.end[0] && validNeighbors[i][1] === this.end[1]){
+					this.searchDS = [];
+					this.searched[validNeighbors[i]] = true;
+					return;
+				}
+				this.searched[validNeighbors[i]] = true;
+				this.searchDS.push(validNeighbors[i]);
+			}
+		};
 	};
 
 	var gridDim = 20;
-	var start = [1, 0];
-	var end = [13, 18];
+	var start = [13, 18];
+	var end = [8, 10];
 
 	var walls = [];
 	for(var row = 0; row < gridDim; row++){
@@ -151,6 +204,10 @@ window.onload = function(){
 	function update(){
 		frameCount++;
 		grid.update(canvas.width, canvas.height);
+		if(grid.searchDS.length){
+			//grid.bfs();
+			grid.dfs();
+		}
 	}
 
 	function draw(){
@@ -163,5 +220,5 @@ window.onload = function(){
 		draw();		
 	}
 
-	setInterval(loop, 1000/15);
+	setInterval(loop, 1000 / 30);
 }
