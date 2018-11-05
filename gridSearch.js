@@ -48,11 +48,10 @@ window.onload = function(){
 		canvas.height = window.innerHeight;
 	}
 
+
+	// MinHeap prototype
 	var MinHeap = function(initList=[]){
 		this.heap = initList;
-		if(this.heap.length !== 0){
-			this.heapify();
-		}
 
 		this._swap = function(a, b){
 			var temp = this.heap[a];
@@ -74,7 +73,50 @@ window.onload = function(){
 				}
 			}
 		};
+
+		this.heapify = function(){
+			var heapLen = this.heap.length;
+			var stack = [];
+			for(i in this.heap){
+				stack.push(i);
+			}
+			
+			while(stack.length !== 0){
+				var curIdx = stack.pop();
+				var cur = this.heap[curIdx];
+				var leftIdx = 2 * curIdx + 1;
+				var rightIdx = 2 * curIdx + 2;
+				var left = leftIdx > heapLen - 1 ? cur : this.heap[leftIdx];
+				var right = rightIdx > heapLen - 1 ? cur : this.heap[rightIdx];
+				if(left < right){
+					if(left < cur){
+						this._swap(curIdx, leftIdx);
+						stack.push(leftIdx);
+					}
+				}
+				else{
+					if(right < cur){
+						this._swap(curIdx, rightIdx);
+						stack.push(rightIdx);
+					}
+				}
+			}
+		};
+
+		this.popTop = function(){
+			if(this.heap.length === 0){
+				return null;
+			}
+			var heapTop = this.heap.splice(0, 1)[0];
+			this.heapify();
+			return heapTop;
+		};			
+
+		if(this.heap.length !== 0){
+			this.heapify();
+		}
 	};
+
 
 	// Grid prototype
 	var Grid = function(){
