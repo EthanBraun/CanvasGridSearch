@@ -220,7 +220,6 @@ window.onload = function(){
 	
 		// Treat searchDS as a queue	
 		this.bfs = function(){
-			console.log(this.searchDS);
 			var cur = this.searchDS.pop();	
 			var validNeighbors = this.getValidNeighbors(cur);
 			for(i in validNeighbors){
