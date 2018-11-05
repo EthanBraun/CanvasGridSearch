@@ -48,6 +48,34 @@ window.onload = function(){
 		canvas.height = window.innerHeight;
 	}
 
+	var MinHeap = function(initList=[]){
+		this.heap = initList;
+		if(this.heap.length !== 0){
+			this.heapify();
+		}
+
+		this._swap = function(a, b){
+			var temp = this.heap[a];
+			this.heap[a] = this.heap[b];
+			this.heap[b] = temp;
+		};
+
+		this.add = function(x){
+			var idx = self.heap.length;
+			this.heap.push(x);
+			while(idx !== 0){
+				var parIdx = Math.floor((idx - 1) / 2);
+				if(this.heap[parIdx] > this.heap[idx]){
+					this._swap(parIdx, idx);
+					idx = parIdx;
+				}
+				else{
+					return;
+				}
+			}
+		};
+	};
+
 	// Grid prototype
 	var Grid = function(){
 		this.grid = [];
