@@ -48,7 +48,6 @@ window.onload = function(){
 		canvas.height = window.innerHeight;
 	}
 
-
 	// MinHeap prototype
 	var MinHeap = function(initList=[]){
 		this.heap = initList;
@@ -58,13 +57,17 @@ window.onload = function(){
 			this.heap[a] = this.heap[b];
 			this.heap[b] = temp;
 		};
+		
+		this.getLen = function(){
+			return this.heap.length;
+		};
 
 		this.add = function(x){
-			var idx = self.heap.length;
+			var idx = this.heap.length;
 			this.heap.push(x);
 			while(idx !== 0){
 				var parIdx = Math.floor((idx - 1) / 2);
-				if(this.heap[parIdx] > this.heap[idx]){
+				if(this.heap[parIdx]['dist'] > this.heap[idx]['dist']){
 					this._swap(parIdx, idx);
 					idx = parIdx;
 				}
@@ -74,6 +77,7 @@ window.onload = function(){
 			}
 		};
 
+		// Enforce the min-heap condition with respect to estimated distance
 		this.heapify = function(){
 			var heapLen = this.heap.length;
 			var stack = [];
@@ -83,11 +87,11 @@ window.onload = function(){
 			
 			while(stack.length !== 0){
 				var curIdx = stack.pop();
-				var cur = this.heap[curIdx];
+				var cur = this.heap[curIdx]['dist'];
 				var leftIdx = 2 * curIdx + 1;
 				var rightIdx = 2 * curIdx + 2;
-				var left = leftIdx > heapLen - 1 ? cur : this.heap[leftIdx];
-				var right = rightIdx > heapLen - 1 ? cur : this.heap[rightIdx];
+				var left = leftIdx > heapLen - 1 ? cur : this.heap[leftIdx]['dist'];
+				var right = rightIdx > heapLen - 1 ? cur : this.heap[rightIdx]['dist'];
 				if(left < right){
 					if(left < cur){
 						this._swap(curIdx, leftIdx);
@@ -103,11 +107,12 @@ window.onload = function(){
 			}
 		};
 
+		// Get coords of valid move estimated to be closest to the end
 		this.popTop = function(){
 			if(this.heap.length === 0){
 				return null;
 			}
-			var heapTop = this.heap.splice(0, 1)[0];
+			var heapTop = this.heap.splice(0, 1)[0]['coords'];
 			this.heapify();
 			return heapTop;
 		};			
@@ -116,7 +121,6 @@ window.onload = function(){
 			this.heapify();
 		}
 	};
-
 
 	// Grid prototype
 	var Grid = function(){
@@ -136,6 +140,15 @@ window.onload = function(){
 			}
 			this.searched = {};
 			this.searchDS = [start];
+			this.minHeap = new MinHeap([{'dist': this._estimateDistance(start, end), 'coords': start}]);
+			this.finished = false;
+		};
+
+		// Returns square of euclidean distance between coords without accounting for walls
+		this._estimateDistance = function(a, b){
+			var squaredRowDist = (a[0] - b[0]) ** 2;
+			var squaredColDist = (a[1] - b[1]) ** 2;
+			return squaredRowDist + squaredColDist;
 		};
 
 		this.update = function(canvasWidth, canvasHeight){
@@ -176,7 +189,7 @@ window.onload = function(){
 						ctx.shadowBlur = 20;
 					}
 					else if(this.end[0] === row && this.end[1] === col){
-						ctx.fillStyle = this.searchDS.length ? '#FF0000' : '#AA00FF';
+						ctx.fillStyle = this.finished ? '#FF0000': '#FFFF00';
 						ctx.shadowColor = ctx.fillStyle;
 						ctx.shadowBlur = 20;
 					}
@@ -226,6 +239,7 @@ window.onload = function(){
 				if(validNeighbors[i][0] === this.end[0] && validNeighbors[i][1] === this.end[1]){
 					this.searchDS = [];
 					this.searched[validNeighbors[i]] = true;
+					this.finished = true;
 					return;
 				}
 				this.searched[validNeighbors[i]] = true;
@@ -241,17 +255,36 @@ window.onload = function(){
 				if(validNeighbors[i][0] === this.end[0] && validNeighbors[i][1] === this.end[1]){
 					this.searchDS = [];
 					this.searched[validNeighbors[i]] = true;
+					this.finished = true;
 					return;
 				}
 				this.searched[validNeighbors[i]] = true;
 				this.searchDS.push(validNeighbors[i]);
 			}
 		};
+
+		// Maintain min-heap of valid search spaces by distance heuristic
+		this.aStar = function(){
+			var cur = this.minHeap.popTop();
+			var validNeighbors = this.getValidNeighbors(cur);
+			for(i in validNeighbors){
+				var neighbor = validNeighbors[i];
+				if(neighbor[0] === this.end[0] && neighbor[1] === this.end[1]){
+					this.minHeap = [];
+					this.searched[neighbor] = true;
+					this.finished = true;
+					return;
+				}
+				this.searched[neighbor] = true;
+				var estDist = this._estimateDistance(neighbor, this.end);
+				this.minHeap.add({'dist': estDist, 'coords': neighbor});
+			}
+		};
 	};
 
 	var gridDim = 20;
 	var start = [13, 18];
-	var end = [8, 10];
+	var end = [3, 2];
 
 	var walls = [];
 	for(var row = 0; row < gridDim; row++){
@@ -273,9 +306,12 @@ window.onload = function(){
 	function update(){
 		frameCount++;
 		grid.update(canvas.width, canvas.height);
-		if(grid.searchDS.length){
-			//grid.bfs();
-			grid.dfs();
+		//if(grid.seachDS.length){
+		//	grid.bfs();
+			//grid.dfs();
+		//}
+		if(grid.minHeap.getLen()){
+			grid.aStar();
 		}
 	}
 
