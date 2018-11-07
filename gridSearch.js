@@ -264,7 +264,7 @@ window.onload = function(){
 		};
 
 		// Maintain min-heap of valid search spaces by distance heuristic
-		this.aStar = function(){
+		this.bestFirst = function(){
 			var cur = this.minHeap.popTop();
 			var validNeighbors = this.getValidNeighbors(cur);
 			for(i in validNeighbors){
@@ -311,7 +311,7 @@ window.onload = function(){
 			//grid.dfs();
 		//}
 		if(grid.minHeap.getLen()){
-			grid.aStar();
+			grid.bestFirst();
 		}
 	}
 
