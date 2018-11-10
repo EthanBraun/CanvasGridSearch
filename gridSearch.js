@@ -297,7 +297,9 @@ window.onload = function(){
 		this.controlScale = controlScale;
 		this.gridScale = gridScale;
 		this.buttonScale = 0.8;
+		this.iconScale = 0.5;
 		this.buttonHover = null;
+		this.buttonClick = null;
 
 		this.updateDrawingVars = function(){
 			this.xOffset = this.controlScale * this.canvasHeight;
@@ -307,6 +309,9 @@ window.onload = function(){
 			this.buttonWidth = this.width * this.buttonScale;
 			this.buttonOffset = (1 - this.buttonScale) * this.width / 2;
 			this.buttonHeight = (this.height - 7 * this.buttonOffset) / 6;
+			this.iconDims = this.buttonWidth < this.buttonHeight ? this.iconScale * this.buttonWidth : this.iconScale * this.buttonHeight; 
+			this.iconOffsetX = (this.buttonWidth - this.iconDims) / 2;
+			this.iconOffsetY = (this.buttonHeight - this.iconDims) / 2;
 		};
 		
 		this.updateButtonHover = function(){
@@ -331,15 +336,113 @@ window.onload = function(){
 				this.updateDrawingVars();	
 			}
 			this.updateButtonHover();
+			if(clicked){
+				if(this.buttonClick === null){
+					this.buttonClick = this.buttonHover;
+					this.registerButtonClick();
+				}
+			}
+			else if(this.buttonClick !== null){
+				this.buttonClick = null;
+			}
 		};
 
 		this.drawButtons = function(){
-			ctx.shadowBlur = 0;
 			for(var i = 0; i < 6; i++){
 				var buttonTop = this.yOffset + this.buttonOffset + (this.buttonHeight + this.buttonOffset) * i;
-				ctx.fillStyle = i === this.buttonHover ? '#444' : '#222';
+				var iconLeft = this.buttonOffset + this.iconOffsetX;
+				var iconTop = buttonTop + this.iconOffsetY;
+				ctx.fillStyle = i === this.buttonHover ? (i === this.buttonClick ? '#333' : '#444') : '#222';
+				ctx.shadowBlur = 0;
 				ctx.fillRect(this.buttonOffset, buttonTop, this.buttonWidth, this.buttonHeight);
+				this.drawIcon(i, iconLeft, iconTop);
 			}
+		};
+		
+		this.drawIcon = function(i, iconLeft, iconTop){
+			switch(i){
+				case 0:
+					this.drawPlay(iconLeft, iconTop);
+					break;
+				case 1:
+					this.drawStop(iconLeft, iconTop);
+					break;
+				case 2:
+					this.drawReset(iconLeft, iconTop);
+					break;
+				case 3:
+					this.drawToggle(iconLeft, iconTop);
+					break;
+				case 4:
+					this.drawStart(iconLeft, iconTop);
+					break;
+				case 5:
+					this.drawEnd(iconLeft, iconTop);
+					break;
+			}	
+		};
+
+		this.drawPlay = function(iLeft, iTop){
+			ctx.fillStyle = '#0F0';
+			ctx.shadowColor = '#0F0';
+			ctx.shadowBlur = 10;
+			ctx.beginPath();
+			ctx.moveTo(iLeft, iTop);
+			ctx.lineTo(iLeft + this.iconDims, iTop + this.iconDims / 2);
+			ctx.lineTo(iLeft, iTop + this.iconDims);
+			ctx.fill();
+		};
+
+		this.drawStop = function(iLeft, iTop){
+			ctx.fillStyle = '#F00';
+			ctx.shadowColor = '#F00';
+			ctx.shadowBlur = 10;
+			ctx.fillRect(iLeft, iTop, this.iconDims, this.iconDims);
+		};
+
+		this.drawReset = function(iLeft, iTop){
+			ctx.strokeStyle = '#0CF';
+			ctx.shadowColor = '#0CF';
+			ctx.shadowBlur = 10;
+			ctx.lineWidth = 8;
+			ctx.lineCap = 'round';
+			ctx.beginPath();
+			ctx.moveTo(iLeft, iTop);
+			ctx.lineTo(iLeft + this.iconDims, iTop + this.iconDims);
+			ctx.moveTo(iLeft, iTop + this.iconDims);
+			ctx.lineTo(iLeft + this.iconDims, iTop);
+			ctx.stroke();
+		};
+
+		this.drawToggle = function(iLeft, iTop){
+			var squareScale = 0.7;
+			ctx.shadowBlur = 10;
+			ctx.fillStyle = '#BBB';
+			ctx.shadowColor = '#BBB';
+			ctx.fillRect(iLeft, iTop, squareScale * this.iconDims, squareScale * this.iconDims);
+			ctx.fillStyle = '#666';
+			ctx.shadowColor = '#666';
+			ctx.fillRect(iLeft + (1 - squareScale) * this.iconDims, iTop + (1 - squareScale) * this.iconDims, squareScale * this.iconDims, squareScale * this.iconDims);
+		};
+
+		this.drawStart = function(iLeft, iTop){
+			var squareScale = 0.7;
+			ctx.fillStyle = '#0F0';
+			ctx.shadowColor = '#0F0';
+			ctx.shadowBlur = 10;
+			var xOffset = iLeft + (1 - squareScale) * this.iconDims / 2;
+			var yOffset = iTop + (1 - squareScale) * this.iconDims / 2;
+			ctx.fillRect(xOffset, yOffset, squareScale * this.iconDims, squareScale * this.iconDims);
+		};
+
+		this.drawEnd = function(iLeft, iTop){
+			var squareScale = 0.7;
+			ctx.fillStyle = '#FF0';
+			ctx.shadowColor = '#FF0';
+			ctx.shadowBlur = 10;
+			var xOffset = iLeft + (1 - squareScale) * this.iconDims / 2;
+			var yOffset = iTop + (1 - squareScale) * this.iconDims / 2;
+			ctx.fillRect(xOffset, yOffset, squareScale * this.iconDims, squareScale * this.iconDims);
 		};
 
 		this.draw = function(){
