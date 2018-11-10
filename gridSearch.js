@@ -197,18 +197,22 @@ window.onload = function(){
 									this.walls[[row, col]] = false;
 								}
 								else{
-									this.walls[[row, col]] = true;
+									var notStart = (this.start[0] !== row) || (this.start[1] !== col); 
+									var notEnd = (this.end[0] !== row) || (this.end[1] !== col); 
+									if(notStart && notEnd){
+										this.walls[[row, col]] = true;
+									}
 								}
 							}
 							break;
 						case 1:
-							if(freshClick){
+							if(freshClick && ((this.end[0] !== row) || (this.end[1] !== col)) && !this.walls[[row, col]]){
 								this.start = [row, col];
 								this.resetSearch();
 							}
 							break;
 						case 2:
-							if(freshClick){
+							if(freshClick && ((this.start[0] !== row) || (this.start[1] !== col)) && !this.walls[[row, col]]){
 								this.end = [row, col];
 							}
 							break;
