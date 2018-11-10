@@ -2,7 +2,7 @@ window.onload = function(){
 	var canvas = document.getElementById('canvas');
 	var ctx = canvas.getContext('2d');
 	var colors = ['#FF0000', '#FFA500', '#FFFF00', '#00CC00', '#0066FF', '#BB00FF'];
-	var mouseX, mouseY;
+	var mouseX = 0, mouseY = 0;
 	var frameCount = 0;
 
 	var clicked = 0;
@@ -10,7 +10,7 @@ window.onload = function(){
 	resizeCanvas();
 	
 	function drawBackground(){
-		ctx.fillStyle = '#222';
+		ctx.fillStyle = '#333';
 		ctx.shadowBlur = 0;
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 	}
@@ -23,7 +23,10 @@ window.onload = function(){
 		};
 	}
 	document.addEventListener("keydown", function(e){
-		console.log("keycode: " + e.keyCode);
+		//console.log("keycode: " + e.keyCode);
+		if(e.keyCode == 32){
+			grid.resetSearch();
+		}
 	}, false);
 
 	document.addEventListener("mousemove", function(e){
@@ -123,10 +126,10 @@ window.onload = function(){
 	};
 
 	// Grid prototype
-	var Grid = function(){
+	var Grid = function(canvasScale){
 		this.grid = [];
 		this.dim = 0;
-		this.canvasScale = 0.9;
+		this.canvasScale = canvasScale;
 		this.squareScale = 0.9;
 		this.squareOffsetScale = (1 - this.squareScale) / 2;
 		
@@ -138,6 +141,13 @@ window.onload = function(){
 			for(i in walls){
 				this.walls[walls[i]] = true;
 			}
+			this.searched = {};
+			this.searchDS = [start];
+			this.minHeap = new MinHeap([{'dist': this._estimateDistance(start, end), 'coords': start}]);
+			this.finished = false;
+		};
+		
+		this.resetSearch = function(){
 			this.searched = {};
 			this.searchDS = [start];
 			this.minHeap = new MinHeap([{'dist': this._estimateDistance(start, end), 'coords': start}]);
@@ -170,7 +180,7 @@ window.onload = function(){
 		};
 
 		this.drawGridBackground = function(){
-			ctx.fillStyle = '#333';
+			ctx.fillStyle = '#444';
 			ctx.shadowColor = ctx.fillStyle;
 			ctx.shadowBlur = 10;
 			ctx.fillRect(this.xOffset, this.yOffset, this.gridSize, this.gridSize);
@@ -200,8 +210,8 @@ window.onload = function(){
 					}
 					else if(this.searched[[row, col]]){
 						ctx.fillStyle = '#0000FF';
-						ctx.shadowColor = ctx.fillStyle;
-						ctx.shadowBlur = 10;
+						//ctx.shadowColor = ctx.fillStyle;
+						ctx.shadowBlur = 0;
 					}
 					else{
 						ctx.fillStyle = '#BBB';
@@ -282,7 +292,65 @@ window.onload = function(){
 		};
 	};
 
-	var gridDim = 20;
+	// Controls prototype
+	var Controls = function(controlScale, gridScale){
+		this.controlScale = controlScale;
+		this.gridScale = gridScale;
+		this.buttonScale = 0.8;
+		this.buttonHover = null;
+
+		this.updateDrawingVars = function(){
+			this.xOffset = this.controlScale * this.canvasHeight;
+			this.yOffset = this.canvasHeight * (1 - this.gridScale) / 2;
+			this.width = this.controlScale * this.canvasHeight;
+			this.height = this.gridScale * this.canvasHeight;
+			this.buttonWidth = this.width * this.buttonScale;
+			this.buttonOffset = (1 - this.buttonScale) * this.width / 2;
+			this.buttonHeight = (this.height - 7 * this.buttonOffset) / 6;
+		};
+		
+		this.updateButtonHover = function(){
+			if(mouseX < this.buttonOffset || mouseX > this.buttonOffset + this.buttonWidth){
+				this.buttonHover = null;
+				return;
+			}
+			for(var i = 0; i < 6; i++){
+				var curTop = this.yOffset + this.buttonOffset + i * (this.buttonOffset + this.buttonHeight);
+				if(mouseY > curTop && mouseY < curTop + this.buttonHeight){
+					this.buttonHover = i;
+					return;
+				}
+			}
+			this.buttonHover = null;			
+		};
+
+		this.update = function(canvasWidth, canvasHeight){
+			if(canvasWidth !== this.canvasWidth || canvasHeight !== this.canvasHeight){
+				this.canvasWidth = canvasWidth;
+				this.canvasHeight = canvasHeight;
+				this.updateDrawingVars();	
+			}
+			this.updateButtonHover();
+		};
+
+		this.drawButtons = function(){
+			ctx.shadowBlur = 0;
+			for(var i = 0; i < 6; i++){
+				var buttonTop = this.yOffset + this.buttonOffset + (this.buttonHeight + this.buttonOffset) * i;
+				ctx.fillStyle = i === this.buttonHover ? '#444' : '#222';
+				ctx.fillRect(this.buttonOffset, buttonTop, this.buttonWidth, this.buttonHeight);
+			}
+		};
+
+		this.draw = function(){
+			ctx.fillStyle = '#111';
+			ctx.shadowBlur = 0;
+			ctx.fillRect(0, this.yOffset, this.width, this.height);
+			this.drawButtons();
+		};
+	};
+
+	var gridDim = 30;
 	var start = [13, 18];
 	var end = [3, 2];
 
@@ -298,7 +366,11 @@ window.onload = function(){
 		}
 	}
 
-	var grid = new Grid();
+	var gridScale = 0.75;
+	var controlsScale = 0.10;
+
+	var grid = new Grid(gridScale);
+	var controls = new Controls(controlsScale, gridScale);
 	grid.init(gridDim, start, end, walls);
 
 	//main functions
@@ -306,11 +378,12 @@ window.onload = function(){
 	function update(){
 		frameCount++;
 		grid.update(canvas.width, canvas.height);
+		controls.update(canvas.width, canvas.height);
 		//if(grid.seachDS.length){
 		//	grid.bfs();
 			//grid.dfs();
 		//}
-		if(grid.minHeap.getLen()){
+		if(grid.minHeap.heap && grid.minHeap.heap.length){
 			grid.bestFirst();
 		}
 	}
@@ -318,6 +391,7 @@ window.onload = function(){
 	function draw(){
 		drawBackground();
 		grid.draw();
+		controls.draw();
 	}
 
 	function loop(){
