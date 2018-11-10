@@ -6,6 +6,7 @@ window.onload = function(){
 	var frameCount = 0;
 
 	var clicked = 0;
+	var freshClick = 0;
 
 	resizeCanvas();
 	
@@ -24,9 +25,6 @@ window.onload = function(){
 	}
 	document.addEventListener("keydown", function(e){
 		//console.log("keycode: " + e.keyCode);
-		if(e.keyCode == 32){
-			grid.resetSearch();
-		}
 	}, false);
 
 	document.addEventListener("mousemove", function(e){
@@ -38,11 +36,13 @@ window.onload = function(){
 	document.addEventListener('mousedown', function(event){
 		if(!clicked){
 			clicked = 1;
+			freshClick = 1;
 		}
 	}, false);
 
 	document.addEventListener('mouseup', function(event){
 		clicked = 0;
+		freshClick = 0;
 	}, false);
 
 	window.addEventListener('resize', resizeCanvas, false);
@@ -132,6 +132,8 @@ window.onload = function(){
 		this.canvasScale = canvasScale;
 		this.squareScale = 0.9;
 		this.squareOffsetScale = (1 - this.squareScale) / 2;
+		// 0 - Open, 1 - Walls
+		this.toggleType = 0;
 		
 		this.init = function(dim, start, end, walls){
 			this.dim = dim;
@@ -146,7 +148,7 @@ window.onload = function(){
 			this.minHeap = new MinHeap([{'dist': this._estimateDistance(start, end), 'coords': start}]);
 			this.finished = false;
 		};
-		
+
 		this.resetSearch = function(){
 			this.searched = {};
 			this.searchDS = [this.start];
@@ -158,15 +160,61 @@ window.onload = function(){
 			this.walls = {};
 		};
 
+		this.setControlReference = function(ref){
+			this.controls = ref;
+		};
+
 		// Returns square of euclidean distance between coords without accounting for walls
 		this._estimateDistance = function(a, b){
 			var squaredRowDist = (a[0] - b[0]) ** 2;
 			var squaredColDist = (a[1] - b[1]) ** 2;
 			return squaredRowDist + squaredColDist;
 		};
+	
+		this.mouseInGrid = function(){
+			if(mouseX > this.xOffset && mouseX < this.xOffset + this.gridSize){
+				if(mouseY > this.yOffset && mouseY < this.yOffset + this.gridSize){
+					return true;
+				}
+			}
+			return false;
+		};
 
 		this.update = function(canvasWidth, canvasHeight){
 			this.updateDrawingVars(canvasWidth, canvasHeight);
+			// Controls in stop mode
+			if(this.controls.mode === 1){
+				if(this.mouseInGrid()){
+					var col = Math.floor(this.dim * (mouseX - this.xOffset) / this.gridSize);
+					var row = Math.floor(this.dim * (mouseY - this.yOffset) / this.gridSize);
+					switch(this.controls.fillType){
+						case 0:
+							if(freshClick){
+								this.toggleType = this.walls[[row, col]] ? 0 : 1;   	
+							}
+							if(clicked){
+								if(this.toggleType === 0){
+									this.walls[[row, col]] = false;
+								}
+								else{
+									this.walls[[row, col]] = true;
+								}
+							}
+							break;
+						case 1:
+							if(freshClick){
+								this.start = [row, col];
+								this.resetSearch();
+							}
+							break;
+						case 2:
+							if(freshClick){
+								this.end = [row, col];
+							}
+							break;
+					}
+				}
+			}
 		};
 		
 		this.updateDrawingVars = function(canvasWidth, canvasHeight){
@@ -306,7 +354,7 @@ window.onload = function(){
 		this.buttonHover = null;
 		this.buttonClick = null;
 		// Inactive buttons
-		this.inactive = {1: true, 4: true};
+		this.inactive = {1: true, 3: true};
 
 		// Modes - 0: play, 1: stop
 		this.mode = 1;
@@ -530,6 +578,7 @@ window.onload = function(){
 	var grid = new Grid(gridScale);
 	var controls = new Controls(controlsScale, gridScale, grid);
 	grid.init(gridDim, start, end, walls);
+	grid.setControlReference(controls);
 
 	//main functions
 
@@ -544,6 +593,7 @@ window.onload = function(){
 		if(controls.mode === 0 && grid.minHeap.heap && grid.minHeap.heap.length){
 			grid.bestFirst();
 		}
+		freshClick = 0;
 	}
 
 	function draw(){
