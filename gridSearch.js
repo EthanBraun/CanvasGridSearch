@@ -149,9 +149,13 @@ window.onload = function(){
 		
 		this.resetSearch = function(){
 			this.searched = {};
-			this.searchDS = [start];
-			this.minHeap = new MinHeap([{'dist': this._estimateDistance(start, end), 'coords': start}]);
+			this.searchDS = [this.start];
+			this.minHeap = new MinHeap([{'dist': this._estimateDistance(this.start, this.end), 'coords': this.start}]);
 			this.finished = false;
+		};
+
+		this.clearWalls = function(){
+			this.walls = {};
 		};
 
 		// Returns square of euclidean distance between coords without accounting for walls
@@ -293,13 +297,22 @@ window.onload = function(){
 	};
 
 	// Controls prototype
-	var Controls = function(controlScale, gridScale){
+	var Controls = function(controlScale, gridScale, grid){
 		this.controlScale = controlScale;
 		this.gridScale = gridScale;
+		this.grid = grid;
 		this.buttonScale = 0.8;
 		this.iconScale = 0.5;
 		this.buttonHover = null;
 		this.buttonClick = null;
+		// Inactive buttons
+		this.inactive = {1: true, 4: true};
+
+		// Modes - 0: play, 1: stop
+		this.mode = 1;
+		
+		// Fill types - 0: wall toggle, 1: start, 2: end
+		this.fillType = 0;
 
 		this.updateDrawingVars = function(){
 			this.xOffset = this.controlScale * this.canvasHeight;
@@ -328,6 +341,45 @@ window.onload = function(){
 			}
 			this.buttonHover = null;			
 		};
+	
+		this.registerButtonClick = function(){
+			switch(this.buttonClick){
+				case 0:
+					// Set to play mode
+					this.mode = 0;
+					this.inactive = {0: true, 1: false, 2: true, 3: true, 4: true, 5: true};
+					break;
+				case 1:
+					// Set to stop mode
+					this.mode = 1;
+					this.inactive = {0: false, 1: true, 2: false, 3: false, 4: false, 5: false};
+					this.inactive[this.fillType + 3] = true;
+					this.grid.resetSearch();
+					break;
+				case 2:
+					// Clear walls
+					this.grid.clearWalls();
+					break;
+				case 3:
+					// Set fill type to toggle
+					this.inactive[this.fillType + 3] = false;
+					this.fillType = 0;
+					this.inactive[this.fillType + 3] = true;
+					break;
+				case 4:
+					// Set fill type to start
+					this.inactive[this.fillType + 3] = false;
+					this.fillType = 1;
+					this.inactive[this.fillType + 3] = true;
+					break;
+				case 5:
+					// Set fill type to end
+					this.inactive[this.fillType + 3] = false;
+					this.fillType = 2;
+					this.inactive[this.fillType + 3] = true;
+					break;
+			}
+		};
 
 		this.update = function(canvasWidth, canvasHeight){
 			if(canvasWidth !== this.canvasWidth || canvasHeight !== this.canvasHeight){
@@ -339,7 +391,9 @@ window.onload = function(){
 			if(clicked){
 				if(this.buttonClick === null){
 					this.buttonClick = this.buttonHover;
-					this.registerButtonClick();
+					if(!this.inactive[this.buttonClick]){
+						this.registerButtonClick();
+					}
 				}
 			}
 			else if(this.buttonClick !== null){
@@ -352,7 +406,7 @@ window.onload = function(){
 				var buttonTop = this.yOffset + this.buttonOffset + (this.buttonHeight + this.buttonOffset) * i;
 				var iconLeft = this.buttonOffset + this.iconOffsetX;
 				var iconTop = buttonTop + this.iconOffsetY;
-				ctx.fillStyle = i === this.buttonHover ? (i === this.buttonClick ? '#333' : '#444') : '#222';
+				ctx.fillStyle = this.inactive[i] ? '#444' : (i === this.buttonHover ? (i === this.buttonClick ? '#333' : '#444') : '#222');
 				ctx.shadowBlur = 0;
 				ctx.fillRect(this.buttonOffset, buttonTop, this.buttonWidth, this.buttonHeight);
 				this.drawIcon(i, iconLeft, iconTop);
@@ -447,7 +501,8 @@ window.onload = function(){
 
 		this.draw = function(){
 			ctx.fillStyle = '#111';
-			ctx.shadowBlur = 0;
+			ctx.shadowColor = '#111';
+			ctx.shadowBlur = 10;
 			ctx.fillRect(0, this.yOffset, this.width, this.height);
 			this.drawButtons();
 		};
@@ -473,7 +528,7 @@ window.onload = function(){
 	var controlsScale = 0.10;
 
 	var grid = new Grid(gridScale);
-	var controls = new Controls(controlsScale, gridScale);
+	var controls = new Controls(controlsScale, gridScale, grid);
 	grid.init(gridDim, start, end, walls);
 
 	//main functions
@@ -486,7 +541,7 @@ window.onload = function(){
 		//	grid.bfs();
 			//grid.dfs();
 		//}
-		if(grid.minHeap.heap && grid.minHeap.heap.length){
+		if(controls.mode === 0 && grid.minHeap.heap && grid.minHeap.heap.length){
 			grid.bestFirst();
 		}
 	}
